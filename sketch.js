@@ -6,8 +6,7 @@ let selectedNode = null;
 let isPaused = false;
 
 function setup() {
-  // Sidebar rộng 400px thì trừ 400
-  let cnv = createCanvas(windowWidth - 400, windowHeight);
+  let cnv = createCanvas(windowWidth - 300, windowHeight);
   cnv.parent("canvas-parent");
   textAlign(CENTER, CENTER);
   textSize(16);
