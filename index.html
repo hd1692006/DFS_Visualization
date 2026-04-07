@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>DFS SIMULATOR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2>DFS SIMULATOR</h2>
+      <div class="group">
+        <button id="nodeBtn" class="active" onclick="setMode('node')">
+          ➕ Thêm Đỉnh
+        </button>
+        <button id="edgeBtn" onclick="setMode('edge')">🔗 Thêm Cạnh</button>
+      </div>
+      <div class="group">
+        <div class="input-row">
+          <label>Gốc (S):</label>
+          <input type="number" id="startNode" value="0" />
+        </div>
+        <div class="input-row">
+          <label>Đích (E):</label>
+          <input type="number" id="endNode" value="3" />
+        </div>
+        <button class="run-btn" onclick="startDFS()">🚀 Chạy DFS</button>
+        <button class="app-btn" onclick="findComponents()">
+          🎨 TP Liên Thông
+        </button>
+        <button class="path-btn" onclick="findPath()">🚩 Tìm đường đi</button>
+      </div>
+      <div id="status-box">
+        <b>Trạng thái:</b><br /><span id="statusText">Sẵn sàng.</span>
+      </div>
+      <div id="stack-container">
+        <b>Stack (LIFO):</b>
+        <div id="stack-visual"></div>
+      </div>
+      <div id="log-container">
+        <b>Nhật ký hệ thống:</b>
+        <div id="log-box"></div>
+      </div>
+      <button class="reset-btn" onclick="resetGraph()">🔄 Xóa toàn bộ</button>
+    </div>
+    <main id="canvas-parent"></main>
+    <script src="sketch.js"></script>
+  </body>
+</html>

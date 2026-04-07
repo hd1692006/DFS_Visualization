@@ -1,0 +1,177 @@
+body {
+  margin: 0;
+  display: flex;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: #ecf0f1;
+  overflow: hidden;
+}
+
+#sidebar {
+  width: 300px;
+  height: 100vh;
+  background: #2c3e50;
+  color: white;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+  text-align: center;
+  color: #3498db;
+  margin-top: 0;
+}
+
+.group {
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+input {
+  width: 60px;
+  padding: 5px;
+  border-radius: 4px;
+  border: none;
+}
+
+button {
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  background: #34495e;
+  color: white;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: #5d6d7e;
+  transform: translateY(-1px);
+}
+button.active {
+  background: #3498db;
+  box-shadow: 0 0 10px #3498db;
+}
+
+.run-btn {
+  background: #27ae60 !important;
+  margin-top: 5px;
+}
+.app-btn {
+  background: #8e44ad !important;
+}
+.reset-btn {
+  background: #c0392b !important;
+  margin-top: auto;
+}
+
+#status-box {
+  background: #1a252f;
+  padding: 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  border-left: 4px solid #3498db;
+}
+
+/* Vùng chứa Stack */
+#stack-visual {
+  margin-top: 10px;
+  height: 150px; /* Giới hạn chiều cao cố định */
+  border: 2px solid #3e4f5f;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column-reverse; /* Đỉnh Stack nằm ở trên cùng */
+  gap: 4px;
+  padding: 8px;
+  overflow-y: auto; /* Kích hoạt cuộn dọc khi tràn */
+  background: #243342;
+}
+
+/* Tùy chỉnh thanh cuộn cho đẹp và gọn */
+#stack-visual::-webkit-scrollbar,
+#log-box::-webkit-scrollbar {
+  width: 5px;
+}
+
+#stack-visual::-webkit-scrollbar-thumb,
+#log-box::-webkit-scrollbar-thumb {
+  background: #3498db;
+  border-radius: 10px;
+}
+
+/* Phần tử con trong Stack */
+.stack-item {
+  background: #e67e22;
+  color: #ecf0f1;
+  padding: 5px;
+  text-align: center;
+  border-radius: 3px;
+  border-left: 3px solid #3498db;
+  font-size: 12px;
+  animation: pushAnim 0.3s ease;
+}
+
+@keyframes pushAnim {
+  from {
+    transform: translateX(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+#log-box {
+  margin-top: 5px;
+  height: 150px;
+  background: #1a1a1a;
+  color: #2ecc71;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 8px;
+  border-radius: 4px;
+  overflow-y: auto;
+  border: 1px solid #444;
+  text-align: left;
+}
+.log-entry {
+  margin-bottom: 2px;
+  border-bottom: 1px solid #222;
+}
+.log-highlight {
+  color: #f1c40f;
+  font-weight: bold;
+}
+.path-btn {
+  background: #e67e22 !important;
+  margin-top: 5px;
+  color: white;
+  border-radius: 5px;
+  padding: 10px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+}
