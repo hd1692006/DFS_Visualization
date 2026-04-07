@@ -89,6 +89,7 @@ function keyPressed() {
 
 async function startDFS() {
   if (isRunning || nodes.length === 0) return;
+
   let s = parseInt(document.getElementById("startNode").value);
   if (isNaN(s) || !nodes[s]) return alert("Gốc không hợp lệ");
 
@@ -102,31 +103,35 @@ async function startDFS() {
   while (stack.length > 0) {
     let u = stack.pop();
     updateStackUI(stack);
-    if (!visited[u]) {
-      visited[u] = true;
-      nodes[u].color = "#e74c3c";
-      updateStatus(`Đang thăm đỉnh ${u}`);
-      addLog(`Lấy ${u} khỏi Stack. Đang kiểm tra kề...`);
-      await waitForSpace();
-      for (let v of [...nodes[u].adj].sort((a, b) => b - a)) {
-        if (!visited[v]) {
-          if (!stack.includes(v)) {
-            stack.push(v);
-            updateStackUI(stack);
-            addLog(`Đẩy ${v} vào Stack (kề của ${u})`);
-          }
-        }
+
+    if (visited[u]) continue; // bỏ nếu đã thăm
+
+    visited[u] = true;
+    nodes[u].color = "#e74c3c"; // đang xét
+    updateStatus(`Đang thăm đỉnh ${u}`);
+    addLog(`Pop ${u} khỏi Stack`);
+
+    await waitForSpace();
+
+    // DFS chuẩn: chỉ cần check visited
+    for (let v of [...nodes[u].adj].reverse()) {
+      if (!visited[v]) {
+        stack.push(v);
+        updateStackUI(stack);
+        addLog(`Push ${v} vào Stack (kề của ${u})`);
       }
-      nodes[u].color = "#2ecc71";
-      updateStatus(`XONG đỉnh ${u}. Nhấn Space để tiếp tục.`);
-      await waitForSpace();
     }
+
+    nodes[u].color = "#2ecc71"; // đã xong
+    updateStatus(`XONG đỉnh ${u}`);
+    await waitForSpace();
   }
-  stack = []; // Xóa sạch mảng stack logic
-  updateStackUI([]); // Cập nhật giao diện xóa sạch các ô màu cam
+
+  updateStackUI([]);
   updateStatus("KẾT THÚC: DFS hoàn tất.");
   addLog("--- DFS KẾT THÚC ---", true);
-  await waitForSpace(); // Chốt chặn cuối cùng
+
+  await waitForSpace();
   isRunning = false;
 }
 
