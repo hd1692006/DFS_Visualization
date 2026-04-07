@@ -104,32 +104,33 @@ async function startDFS() {
 
   isRunning = true;
   resetColors();
-  addLog(`--- BẮT ĐẦU DFS TỪ ĐỈNH ${s} ---`, true);
+  addLog(`--- BẮT ĐẦU DFS TỪ ${s} ---`, true);
 
-  let visited = new Array(nodes.length + 1).fill(false); // 1-based
+  let visited = new Array(nodes.length + 1).fill(false);
   let stackUI = [];
   let dfsOrder = [];
 
-  async function dfsRecursive(u) {
+  async function dfs(u) {
+    // 🔥 PUSH (vào stack)
+    stackUI.push(u);
+    updateStackUI(stackUI);
+    addLog(`PUSH ${u} vào stack`);
+
     visited[u] = true;
     dfsOrder.push(u);
 
     nodes[u - 1].color = "#e74c3c";
-    updateStatus(`Đang thăm đỉnh ${u}`);
-    addLog(`Thăm đỉnh ${u}`);
-
-    stackUI.push(u);
-    updateStackUI(stackUI);
+    updateStatus(`Đang thăm ${u}`);
+    addLog(`Thăm ${u}`);
 
     await waitForSpace();
 
-    // Ưu tiên đỉnh nhỏ hơn
     let neighbors = [...nodes[u - 1].adj].sort((a, b) => a - b);
 
     for (let v of neighbors) {
       if (!visited[v]) {
-        addLog(`Đi từ ${u} → ${v}`);
-        await dfsRecursive(v);
+        addLog(`${u} → ${v}`);
+        await dfs(v);
 
         updateStatus(`Quay lui về ${u}`);
         nodes[u - 1].color = "#e74c3c";
@@ -138,30 +139,28 @@ async function startDFS() {
     }
 
     nodes[u - 1].color = "#2ecc71";
-    addLog(`Hoàn tất đỉnh ${u}`);
+    addLog(`XONG ${u}`);
 
+    // 🔥 POP (ra khỏi stack)
     stackUI.pop();
     updateStackUI(stackUI);
-
-    await waitForSpace();
+    addLog(`POP ${u} khỏi stack`);
   }
 
-  // chạy từ đỉnh s
-  await dfsRecursive(s);
+  await dfs(s);
 
-  // nếu đồ thị không liên thông
+  // nếu có nhiều thành phần liên thông
   for (let i = 1; i <= nodes.length; i++) {
     if (!visited[i]) {
-      addLog(`--- Thành phần mới từ ${i} ---`, true);
-      await dfsRecursive(i);
+      addLog(`--- Thành phần mới ${i} ---`, true);
+      await dfs(i);
     }
   }
 
-  // In kết quả DFS
   addLog(`KẾT QUẢ: DFS(${s}) = ${dfsOrder.join(", ")}`, true);
 
   updateStackUI([]);
-  updateStatus("KẾT THÚC: DFS hoàn tất.");
+  updateStatus("DFS hoàn tất");
 
   await waitForSpace();
   isRunning = false;
