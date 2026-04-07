@@ -104,7 +104,7 @@ async function startDFS() {
 
   isRunning = true;
   resetColors();
-  addLog(`--- BẮT ĐẦU DFS TỪ ${s} ---`, true);
+  addLog(`--- BẮT ĐẦU DFS TỪ ĐỈNH ${s} ---`, true);
 
   let visited = new Array(nodes.length + 1).fill(false);
   let stackUI = [];
@@ -114,13 +114,13 @@ async function startDFS() {
     // 🔥 PUSH (vào stack)
     stackUI.push(u);
     updateStackUI(stackUI);
-    addLog(`PUSH ${u} vào stack`);
+    addLog(`Push đỉnh ${u} vào stack`);
 
     visited[u] = true;
     dfsOrder.push(u);
 
     nodes[u - 1].color = "#e74c3c";
-    updateStatus(`Đang thăm ${u}`);
+    updateStatus(`Đang thăm đỉnh ${u}`);
     addLog(`Thăm ${u}`);
 
     await waitForSpace();
@@ -132,7 +132,7 @@ async function startDFS() {
         addLog(`${u} → ${v}`);
         await dfs(v);
 
-        updateStatus(`Quay lui về ${u}`);
+        updateStatus(`Quay lui về đỉnh ${u}`);
         nodes[u - 1].color = "#e74c3c";
         await waitForSpace();
       }
@@ -144,23 +144,15 @@ async function startDFS() {
     // 🔥 POP (ra khỏi stack)
     stackUI.pop();
     updateStackUI(stackUI);
-    addLog(`POP ${u} khỏi stack`);
+    addLog(`Pop đỉnh ${u} khỏi stack`);
   }
 
   await dfs(s);
 
-  // nếu có nhiều thành phần liên thông
-  for (let i = 1; i <= nodes.length; i++) {
-    if (!visited[i]) {
-      addLog(`--- Thành phần mới ${i} ---`, true);
-      await dfs(i);
-    }
-  }
-
-  addLog(`KẾT QUẢ: DFS(${s}) = ${dfsOrder.join(", ")}`, true);
+  addLog(`Kết quả: DFS(${s}) = ${dfsOrder.join(", ")}`, true);
 
   updateStackUI([]);
-  updateStatus("DFS hoàn tất");
+  updateStatus(`Kết quả: DFS(${s}) = ${dfsOrder.join(", ")}`);
 
   await waitForSpace();
   isRunning = false;
@@ -168,109 +160,134 @@ async function startDFS() {
 
 async function findComponents() {
   if (isRunning || nodes.length === 0) return;
+
   isRunning = true;
   resetColors();
   addLog("--- TÌM THÀNH PHẦN LIÊN THÔNG ---", true);
 
-  let visited = new Array(nodes.length).fill(false);
+  let visited = new Array(nodes.length + 1).fill(false);
   let count = 0;
   let colors = ["#1abc9c", "#9b59b6", "#f1c40f", "#e67e22", "#34495e"];
 
   let startIdx = parseInt(document.getElementById("startNode").value);
-  if (isNaN(startIdx) || !nodes[startIdx]) startIdx = 1; // Nếu nhập sai thì mặc định về 1
+  if (isNaN(startIdx) || !nodes[startIdx - 1]) startIdx = 1;
 
-  // Tạo một danh sách các đỉnh cần kiểm tra, đưa đỉnh Gốc lên đầu tiên
-  let checkOrder = [];
-  checkOrder.push(startIdx); // Ưu tiên đỉnh gốc trước
-  for (let i = 0; i < nodes.length; i++) {
-    if (i !== startIdx) checkOrder.push(i); // Sau đó mới thêm các đỉnh còn lại vào hàng đợi
+  // thứ tự duyệt (ưu tiên start)
+  let checkOrder = [startIdx];
+  for (let i = 1; i <= nodes.length; i++) {
+    if (i !== startIdx) checkOrder.push(i);
   }
-  // --------------------------------
 
   for (let i of checkOrder) {
-    // Duyệt theo thứ tự ưu tiên mới
     if (!visited[i]) {
       count++;
       let stack = [i];
-      updateStatus(`Tìm thấy vùng ${count}. Đang duyệt từ đỉnh ${i}...`);
-      addLog(`Vùng ${count} khởi tạo từ đỉnh ${i}`, true);
+
+      updateStatus(`TPLT ${count} bắt đầu từ ${i}`);
+      addLog(`--- TPLT ${count} ---`, true);
 
       while (stack.length > 0) {
         let u = stack.pop();
-        if (!visited[u]) {
-          visited[u] = true;
-          nodes[u].color = colors[count % 5];
-          addLog(`Đỉnh ${u} ∈ Vùng ${count}`);
-          await waitForSpace();
-          for (let v of nodes[u].adj) if (!visited[v]) stack.push(v);
+
+        if (visited[u]) continue;
+
+        visited[u] = true;
+        nodes[u - 1].color = colors[(count - 1) % colors.length];
+
+        addLog(`Đỉnh ${u} ∈ TPLT ${count}`);
+        await waitForSpace();
+
+        // ưu tiên đỉnh nhỏ hơn
+        let neighbors = [...nodes[u - 1].adj].sort((a, b) => b - a);
+        for (let v of neighbors) {
+          if (!visited[v]) {
+            stack.push(v);
+          }
         }
       }
-      updateStatus(`XONG vùng ${count}. Nhấn Space để tìm tiếp.`);
+
+      updateStatus(`XONG TPLT ${count}`);
       await waitForSpace();
     }
   }
 
-  updateStatus("KẾT THÚC: Tìm vùng liên thông hoàn tất.");
-  addLog(`--- TÌM THẤY ${count} THÀNH PHẦN LIÊN THÔNG ---`, true);
+  updateStatus(`Tổng: ${count} thành phần liên thông`);
+  addLog(`Tổng: ${count} thành phần liên thông`, true);
+
   await waitForSpace();
   isRunning = false;
 }
 
 async function findPath() {
   if (isRunning || nodes.length === 0) return;
+
   let s = parseInt(document.getElementById("startNode").value);
   let e = parseInt(document.getElementById("endNode").value);
-  if (isNaN(s) || !nodes[s] || isNaN(e) || !nodes[e])
+
+  if (isNaN(s) || !nodes[s - 1] || isNaN(e) || !nodes[e - 1]) {
     return alert("Đỉnh không hợp lệ");
+  }
 
   isRunning = true;
   resetColors();
-  addLog(`--- TÌM ĐƯỜNG ${s} ➔ ${e} ---`, true);
-  updateStatus(`Đang tìm đường đi từ ${s} đến ${e}...`);
+  addLog(`--- TÌM ĐƯỜNG ĐI TỪ ĐỈNH ${s} ➔ ${e} ---`, true);
+  updateStatus(`Đang tìm đường đi từ đỉnh ${s} → ${e}`);
 
-  let visited = new Array(nodes.length).fill(false);
-  let parent = new Array(nodes.length).fill(null);
+  let visited = new Array(nodes.length + 1).fill(false);
+  let parent = new Array(nodes.length + 1).fill(null);
+
   let stack = [s];
   let found = false;
 
   while (stack.length > 0) {
     let u = stack.pop();
-    if (!visited[u]) {
-      visited[u] = true;
-      nodes[u].color = "#e74c3c";
-      addLog(`Xét đỉnh ${u}`);
-      await waitForSpace();
 
-      if (u === e) {
-        found = true;
-        updateStatus("ĐÃ THẤY ĐÍCH! Nhấn Space để hiện đường đi.");
-        addLog(`Đã tìm thấy đích ${e}!`, true);
-        await waitForSpace();
-        break;
-      }
-      for (let v of nodes[u].adj) {
-        if (!visited[v]) {
-          parent[v] = u;
-          stack.push(v);
-        }
+    if (visited[u]) continue;
+
+    visited[u] = true;
+    nodes[u - 1].color = "#e74c3c";
+
+    addLog(`Thăm ${u}`);
+    await waitForSpace();
+
+    if (u === e) {
+      found = true;
+      addLog(`ĐÃ TỚI ĐỈNH ${e}`, true);
+      break;
+    }
+
+    // ưu tiên nhỏ hơn
+    let neighbors = [...nodes[u - 1].adj].sort((a, b) => b - a);
+
+    for (let v of neighbors) {
+      if (!visited[v]) {
+        parent[v] = u;
+        stack.push(v);
       }
     }
   }
 
   if (found) {
     let path = [];
-    let c = e;
-    while (c !== null) {
-      path.push(c);
-      nodes[c].color = "#f1c40f";
-      c = parent[c];
+    let cur = e;
+
+    while (cur !== null) {
+      path.push(cur);
+      cur = parent[cur];
     }
-    let resultPath = path.reverse().join(" ➔ ");
-    addLog(`Đường đi: ${resultPath}`, true);
-    updateStatus("KẾT THÚC: Đã tìm thấy đường đi.");
+
+    path.reverse();
+
+    // tô màu đường đi
+    for (let x of path) {
+      nodes[x - 1].color = "#f1c40f";
+    }
+
+    addLog(`Đường đi tìm thấy: ${path.join(" ➔ ")}`, true);
+    updateStatus(`Đường đi tìm thấy: ${path.join(" → ")}`);
   } else {
-    addLog("KẾT QUẢ: Không tìm thấy đường đi.");
-    updateStatus("KẾT THÚC: Không có đường đi.");
+    addLog("KHÔNG CÓ ĐƯỜNG ĐI", true);
+    updateStatus("KHÔNG TÌM THẤY ĐƯỜNG ĐI");
   }
 
   await waitForSpace();
