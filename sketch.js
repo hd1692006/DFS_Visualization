@@ -263,6 +263,8 @@ async function startDFS() {
 
   isRunning = true;
   resetColors();
+  traveler.currentId = s;
+  lastPos = s;
   addLog(`-- BẮT ĐẦU DFS TỪ ĐỈNH ${s} --`, true);
 
   let visited = new Array(nodes.length + 1).fill(false);
@@ -270,7 +272,11 @@ async function startDFS() {
   let dfsOrder = [];
 
   async function dfs(u, prevNode = null) {
-    if (prevNode !== null) await animateTravel(prevNode, u);
+    if (prevNode !== null) {
+      await animateTravel(prevNode, u);
+    } else {
+      traveler.currentId = u;
+    }
     // 🔥 PUSH (vào stack)
     stackUI.push(u);
     updateStackUI(stackUI);
@@ -292,7 +298,8 @@ async function startDFS() {
         addLog(`${u} → ${v}`);
         await dfs(v, u);
         await animateTravel(v, u);
-        updateStatus(`Quay lui về đỉnh ${u}`);
+        updateStatus(`Quay lui từ đỉnh ${v} về ${u}`);
+        addLog(`Quay lui từ đỉnh ${v} về ${u}`);
         nodes[u - 1].color = "#e74c3c";
         await waitForSpace();
       }
@@ -685,6 +692,7 @@ function resetGraph() {
     selectedNode = null;
     updateStatus("Sẵn sàng.");
     updateStackUI([]);
+    if (traveler) traveler.currentId = null;
     let logBox = document.getElementById("log-box");
     if (logBox) logBox.innerHTML = "";
   }
