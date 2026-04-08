@@ -4,6 +4,7 @@ let mode = "node";
 let isRunning = false;
 let selectedNode = null;
 let isPaused = false;
+let isDirected = false;
 
 function setup() {
   let cnv = createCanvas(windowWidth - 300, windowHeight);
@@ -22,14 +23,17 @@ function draw() {
   // Vẽ cạnh
   strokeWeight(2);
   for (let e of edges) {
-    if (nodes[e.u - 1] && nodes[e.v - 1]) {
-      stroke(180);
-      line(
-        nodes[e.u - 1].x,
-        nodes[e.u - 1].y,
-        nodes[e.v - 1].x,
-        nodes[e.v - 1].y,
-      );
+    let u = nodes[e.u - 1];
+    let v = nodes[e.v - 1];
+
+    if (!u || !v) continue;
+
+    stroke(180);
+    line(u.x, u.y, v.x, v.y);
+
+    // 🔥 nếu là đồ thị có hướng → vẽ mũi tên
+    if (isDirected) {
+      drawArrow(u.x, u.y, v.x, v.y);
     }
   }
 
@@ -64,6 +68,28 @@ function draw() {
 
     text(msg, width / 2, 40);
   }
+}
+
+function drawArrow(x1, y1, x2, y2) {
+  let angle = atan2(y2 - y1, x2 - x1);
+
+  let arrowSize = 12; // 🔥 tăng size
+
+  // 🔥 lùi mũi tên ra khỏi node (tránh bị che)
+  let offset = 20; // bán kính node ~20
+  let x = x2 - offset * cos(angle);
+  let y = y2 - offset * sin(angle);
+
+  push();
+  translate(x, y);
+  rotate(angle);
+
+  fill(0);
+  noStroke();
+
+  triangle(0, 0, -arrowSize, arrowSize / 2, -arrowSize, -arrowSize / 2);
+
+  pop();
 }
 
 // --- HỆ THỐNG ĐIỀU KHIỂN ---
@@ -420,6 +446,15 @@ function resetColors() {
   nodes.forEach((n) => (n.color = "#ffffff"));
 }
 
+function changeGraphType() {
+  let type = document.getElementById("graphType").value;
+  isDirected = type === "directed";
+
+  rebuildGraph();
+
+  addLog(`Đã chuyển sang đồ thị ${isDirected ? "có hướng" : "vô hướng"}`, true);
+}
+
 function resetGraph() {
   if (isRunning) return;
   nodes = [];
@@ -468,7 +503,10 @@ function rebuildGraph() {
   edges.forEach((e) => {
     if (nodes[e.u - 1] && nodes[e.v - 1]) {
       nodes[e.u - 1].adj.push(e.v);
-      nodes[e.v - 1].adj.push(e.u);
+
+      if (!isDirected) {
+        nodes[e.v - 1].adj.push(e.u);
+      }
     }
   });
 }
