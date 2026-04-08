@@ -32,7 +32,7 @@ h2 {
 }
 
 .group {
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -75,12 +75,21 @@ button.active {
   background: #27ae60 !important;
   margin-top: 5px;
 }
+
 .app-btn {
   background: #8e44ad !important;
+  margin-top: 5px;
 }
+
+.path-btn {
+  background: #e67e22 !important;
+  margin-top: 5px;
+}
+
 .reset-btn {
   background: #c0392b !important;
-  margin-top: auto;
+  margin-top: 35px; /* Khoảng cách phía trên nút reset */
+  padding: 8px;
 }
 
 #status-box {
@@ -88,12 +97,20 @@ button.active {
   padding: 12px;
   border-radius: 5px;
   font-size: 13px;
+  margin-top: 5px;
   border-left: 4px solid #3498db;
+}
+
+#stack-container b {
+  display: inline-block;
+  margin-top: 10px; /* Tăng số này nếu muốn dịch xuống sâu hơn */
+  margin-bottom: 8px; /* Khoảng cách với ô visual bên dưới */
+  color: #3498db; /* Giữ màu xanh cho đồng bộ */
 }
 
 /* Vùng chứa Stack */
 #stack-visual {
-  margin-top: 10px;
+  margin-top: 15px;
   height: 150px; /* Giới hạn chiều cao cố định */
   border: 2px solid #3e4f5f;
   border-radius: 5px;
@@ -151,13 +168,20 @@ button.active {
   }
 }
 
+#log-container b {
+  display: inline-block;
+  margin-top: 10px; /* Tăng số này để đẩy Nhật ký xuống dưới */
+  margin-bottom: 8px; /* Khoảng cách với ô đen log bên dưới */
+  color: #3498db;
+}
+
 #log-box {
-  margin-top: 5px;
+  margin-top: 15px;
   height: 150px;
   background: #1a1a1a;
   color: #2ecc71;
   font-family: monospace;
-  font-size: 11px;
+  font-size: 12px;
   padding: 8px;
   border-radius: 4px;
   overflow-y: auto;
@@ -171,14 +195,4 @@ button.active {
 .log-highlight {
   color: #f1c40f;
   font-weight: bold;
-}
-.path-btn {
-  background: #e67e22 !important;
-  margin-top: 5px;
-  color: white;
-  border-radius: 5px;
-  padding: 10px;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
 }
