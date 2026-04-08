@@ -267,60 +267,94 @@ async function startDFS() {
   lastPos = s;
   addLog(`-- BẮT ĐẦU DFS TỪ ĐỈNH ${s} --`, true);
 
-  let visited = new Array(nodes.length + 1).fill(false);
+  // let visited = new Array(nodes.length + 1).fill(false);
+  let chuaxet = new Array(nodes.length + 1).fill(true);
+  let stack = [];
   let stackUI = [];
   let dfsOrder = [];
 
-  async function dfs(u, prevNode = null) {
-    if (prevNode !== null) {
-      await animateTravel(prevNode, u);
-    } else {
-      traveler.currentId = u;
-    }
-    // 🔥 PUSH (vào stack)
-    stackUI.push(u);
-    updateStackUI(stackUI);
-    addLog(`PUSH đỉnh ${u} vào stack`);
+  stack.push(s);
+  stackUI.push(s);
+  updateStackUI([...stackUI]);
+  addLog(`PUSH đỉnh ${s} vào stack`);
 
-    visited[u] = true;
-    dfsOrder.push(u);
+  chuaxet[s] = false;
+  dfsOrder.push(s);
 
-    nodes[u - 1].color = "#e74c3c";
-    updateStatus(`Đang thăm đỉnh ${u}`);
-    addLog(`Thăm đỉnh ${u}`);
+  nodes[s - 1].color = "#e74c3c";
+  traveler.currentId = s;
+  updateStatus(`Đang thăm đỉnh ${s}`);
+  addLog(`Thăm đỉnh ${s}`);
 
-    await waitForSpace();
+  await waitForSpace();
+
+  while (stack.length > 0) {
+    let u = stack.pop();
+    stackUI.pop();
+    updateStackUI([...stackUI]);
+    addLog(`POP đỉnh ${u} khỏi stack`);
 
     let neighbors = [...nodes[u - 1].adj].sort((a, b) => a - b);
+    let found = false;
 
     for (let v of neighbors) {
-      if (!visited[v]) {
-        addLog(`${u} → ${v}`);
-        await dfs(v, u);
-        await animateTravel(v, u);
-        updateStatus(`Quay lui từ đỉnh ${v} về ${u}`);
-        addLog(`Quay lui từ đỉnh ${v} về ${u}`);
-        nodes[u - 1].color = "#e74c3c";
+      if (chuaxet[v]) {
+        addLog(`Đi từ đỉnh ${u} → ${v}`);
+
+        chuaxet[v] = false;
+        dfsOrder.push(v);
+
+        nodes[v - 1].color = "#e74c3c";
+
+        stack.push(u);
+        stackUI.push(u);
+        addLog(`PUSH đỉnh ${u} vào stack`);
+
+        stack.push(v);
+        stackUI.push(v);
+        addLog(`PUSH đỉnh ${v} vào stack`);
+
+        updateStackUI([...stackUI]);
+
+        // animation
+        await animateTravel(u, v);
+        traveler.currentId = v;
+
+        updateStatus(`Đang thăm đỉnh ${v}`);
+        addLog(`Thăm đỉnh ${v}`);
+
         await waitForSpace();
+
+        found = true;
+        break;
       }
     }
 
-    nodes[u - 1].color = "#2ecc71";
-    addLog(`Xong đỉnh ${u}`);
+    if (!found) {
+      nodes[u - 1].color = "#2ecc71";
+      addLog(`Xong đỉnh ${u}`);
 
-    // 🔥 POP (ra khỏi stack)
-    stackUI.pop();
-    updateStackUI(stackUI);
-    addLog(`POP đỉnh ${u} khỏi stack`);
+      // 🔥 quay lui
+      if (stack.length > 0) {
+        let prev = stack[stack.length - 1];
+
+        await animateTravel(u, prev);
+        traveler.currentId = prev;
+
+        addLog(`Quay lui từ đỉnh ${u} về ${prev}`);
+        updateStatus(`Quay lui từ đỉnh ${u} về ${prev}`);
+
+        await waitForSpace();
+      }
+
+      updateStackUI([...stack]);
+    }
   }
 
-  await dfs(s);
-
   addLog(`Kết quả: DFS(${s}) = ${dfsOrder.join(", ")}`, true);
-
-  updateStackUI([]);
   updateStatus(`Kết quả: DFS(${s}) = ${dfsOrder.join(", ")}`);
 
+  updateStackUI([]);
   await waitForSpace();
   isRunning = false;
 }
@@ -332,7 +366,7 @@ async function findComponents() {
   resetColors();
   addLog("-- TÌM THÀNH PHẦN LIÊN THÔNG --", true);
 
-  let visited = new Array(nodes.length + 1).fill(false);
+  let chuaxet = new Array(nodes.length + 1).fill(true);
   let count = 0;
   let colors = ["#9b59b6"];
   let lastPos = null;
@@ -340,41 +374,86 @@ async function findComponents() {
   let startIdx = parseInt(document.getElementById("startNode").value);
   if (isNaN(startIdx) || !nodes[startIdx - 1]) startIdx = 1;
 
-  // thứ tự duyệt (ưu tiên start)
   let checkOrder = [startIdx];
   for (let i = 1; i <= nodes.length; i++) {
     if (i !== startIdx) checkOrder.push(i);
   }
 
   for (let i of checkOrder) {
-    if (!visited[i]) {
+    if (chuaxet[i]) {
       count++;
-      let stack = [i];
+
+      let stack = [];
+      let stackUI = [];
+
+      // 🔥 PUSH đỉnh đầu
+      stack.push(i);
+      stackUI.push(i);
+      updateStackUI([...stackUI]);
+      addLog(`PUSH đỉnh ${i} vào stack`);
+
+      chuaxet[i] = false;
+
       traveler.currentId = i;
-      updateStackUI([...stack]);
       updateStatus(`TPLT ${count} bắt đầu từ ${i}`);
       addLog(`-- TPLT ${count} --`, true);
 
+      nodes[i - 1].color = colors[(count - 1) % colors.length];
+      addLog(`Đỉnh ${i} ∈ TPLT ${count}`);
+      await waitForSpace();
+
       while (stack.length > 0) {
         let u = stack.pop();
-        updateStackUI(stack);
+        stackUI.pop();
+        updateStackUI([...stackUI]);
         addLog(`POP đỉnh ${u} khỏi stack`);
 
-        if (visited[u]) continue;
-        visited[u] = true;
-        nodes[u - 1].color = colors[(count - 1) % colors.length];
-        if (lastPos !== null) await animateTravel(lastPos, u);
-        lastPos = u;
-        addLog(`Đỉnh ${u} ∈ TPLT ${count}`);
-        await waitForSpace();
+        let neighbors = [...nodes[u - 1].adj].sort((a, b) => a - b);
+        let found = false;
 
-        // ưu tiên đỉnh nhỏ hơn
-        let neighbors = [...nodes[u - 1].adj].sort((a, b) => b - a);
         for (let v of neighbors) {
-          if (!visited[v] && !stack.includes(v)) {
+          if (chuaxet[v]) {
+            addLog(`Đi từ đỉnh ${u} → ${v}`);
+
+            // 🔥 đánh dấu ngay khi thăm
+            chuaxet[v] = false;
+
+            // 🔥 PUSH lại u rồi PUSH v
+            stack.push(u);
+            stackUI.push(u);
+            addLog(`PUSH đỉnh ${u} vào stack`);
+
             stack.push(v);
-            updateStackUI([...stack]);
+            stackUI.push(v);
             addLog(`PUSH đỉnh ${v} vào stack`);
+
+            updateStackUI([...stackUI]);
+
+            nodes[v - 1].color = colors[(count - 1) % colors.length];
+
+            await animateTravel(u, v);
+            traveler.currentId = v;
+
+            addLog(`Đỉnh ${v} ∈ TPLT ${count}`);
+            await waitForSpace();
+
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          nodes[u - 1].color = "#2ecc71";
+          addLog(`Xong đỉnh ${u}`);
+
+          if (stack.length > 0) {
+            let prev = stack[stack.length - 1];
+
+            await animateTravel(u, prev);
+            traveler.currentId = prev;
+
+            addLog(`Quay lui từ đỉnh ${u} về ${prev}`);
+            await waitForSpace();
           }
         }
       }
@@ -386,6 +465,7 @@ async function findComponents() {
 
   updateStatus(`Tổng: ${count} thành phần liên thông`);
   addLog(`Tổng: ${count} thành phần liên thông`, true);
+
   updateStackUI([]);
   await waitForSpace();
   isRunning = false;
@@ -406,28 +486,33 @@ async function findPath() {
   addLog(`-- TÌM ĐƯỜNG ĐI TỪ ĐỈNH ${s} ➔ ${e} --`, true);
   updateStatus(`Đang tìm đường đi từ đỉnh ${s} → ${e}`);
 
-  let visited = new Array(nodes.length + 1).fill(false);
+  let chuaxet = new Array(nodes.length + 1).fill(true);
   let parent = new Array(nodes.length + 1).fill(null);
 
-  let stack = [s];
-  let found = false;
-  let lastPos = s;
+  let stack = [];
+  let stackUI = [];
 
-  updateStackUI(stack);
+  let lastPos = s;
+  let found = false;
+
+  // 🔥 push đỉnh đầu
+  stack.push(s);
+  stackUI.push(s);
+  updateStackUI([...stackUI]);
+  addLog(`PUSH đỉnh ${s} vào stack`);
+
+  chuaxet[s] = false;
+
+  nodes[s - 1].color = "#2284e6";
+  traveler.currentId = s;
+  addLog(`Thăm đỉnh ${s}`);
+  await waitForSpace();
 
   while (stack.length > 0) {
     let u = stack.pop();
-    updateStackUI([...stack]);
+    stackUI.pop();
+    updateStackUI([...stackUI]);
     addLog(`POP đỉnh ${u} khỏi stack`);
-
-    if (visited[u]) continue;
-    visited[u] = true;
-    nodes[u - 1].color = "#2284e6";
-    await animateTravel(lastPos, u);
-    lastPos = u;
-
-    addLog(`Thăm đỉnh ${u}`);
-    await waitForSpace();
 
     if (u === e) {
       found = true;
@@ -435,20 +520,57 @@ async function findPath() {
       break;
     }
 
-    // ưu tiên nhỏ hơn
-    let neighbors = [...nodes[u - 1].adj].sort((a, b) => b - a);
+    let neighbors = [...nodes[u - 1].adj].sort((a, b) => a - b);
+    let goDeeper = false;
+
     for (let v of neighbors) {
-      if (!visited[v]) {
+      if (chuaxet[v]) {
+        addLog(`Đi từ đỉnh ${u} → ${v}`);
+
+        chuaxet[v] = false;
         parent[v] = u;
-        if (!stack.includes(v)) {
-          stack.push(v);
-          updateStackUI([...stack]);
-          addLog(`PUSH đỉnh ${v} vào stack`);
-        }
+
+        // 🔥 push lại u rồi push v
+        stack.push(u);
+        stackUI.push(u);
+        addLog(`PUSH đỉnh ${u} vào stack`);
+
+        stack.push(v);
+        stackUI.push(v);
+        addLog(`PUSH đỉnh ${v} vào stack`);
+
+        updateStackUI([...stackUI]);
+
+        await animateTravel(lastPos, v);
+        lastPos = v;
+
+        nodes[v - 1].color = "#2284e6";
+        addLog(`Thăm đỉnh ${v}`);
+        await waitForSpace();
+
+        goDeeper = true;
+        break;
+      }
+    }
+
+    // 🔥 nếu không đi sâu được → quay lui
+    if (!goDeeper) {
+      nodes[u - 1].color = "#2ecc71";
+      addLog(`Xong đỉnh ${u}`);
+
+      if (stack.length > 0) {
+        let prev = stack[stack.length - 1];
+
+        await animateTravel(lastPos, prev);
+        lastPos = prev;
+
+        addLog(`Quay lui từ đỉnh ${u} về ${prev}`);
+        await waitForSpace();
       }
     }
   }
 
+  // 🔥 truy vết đường đi
   if (found) {
     let path = [];
     let cur = e;
@@ -460,7 +582,6 @@ async function findPath() {
 
     path.reverse();
 
-    // tô màu đường đi
     for (let x of path) {
       nodes[x - 1].color = "#12f3e8";
     }
@@ -471,6 +592,7 @@ async function findPath() {
     addLog(`Không tìm thấy đường đi từ đỉnh ${s} ➔ ${e}`, true);
     updateStatus(`Không tìm thấy đường đi`);
   }
+
   updateStackUI([]);
   await waitForSpace();
   isRunning = false;
