@@ -5,6 +5,33 @@ let isRunning = false;
 let selectedNode = null;
 let isPaused = false;
 let isDirected = false;
+let traveler = {
+  x: 0,
+  y: 0,
+  active: false,
+  currentId: null, // Lưu ID đỉnh người đang đứng
+};
+
+// Hàm di chuyển mượt giữa 2 đỉnh
+async function animateTravel(fromId, toId) {
+  let startNode = nodes.find((n) => n.id === fromId);
+  let endNode = nodes.find((n) => n.id === toId);
+  if (!startNode || !endNode) return;
+
+  traveler.active = true;
+  traveler.currentId = null; // Đang bay trên đường nên không đứng ở đỉnh nào cụ thể
+
+  let steps = 30;
+  for (let i = 0; i <= steps; i++) {
+    let t = i / steps;
+    traveler.x = lerp(startNode.x, endNode.x, t);
+    traveler.y = lerp(startNode.y, endNode.y, t);
+    await new Promise((res) => setTimeout(res, 20));
+  }
+
+  traveler.active = false;
+  traveler.currentId = toId; // Đã đến đích, đứng yên tại đây
+}
 
 function setup() {
   let cnv = createCanvas(windowWidth - 300, windowHeight);
@@ -58,6 +85,7 @@ function draw() {
 
     fill(n.color === "#ffffff" ? 0 : 255);
     noStroke();
+    textSize(16);
     textAlign(CENTER, CENTER);
     text(n.id, n.x, n.y);
   }
@@ -66,14 +94,71 @@ function draw() {
   let status = document.getElementById("statusText").innerText;
 
   if (isRunning && isPaused) {
-    fill(status.includes("XONG") ? "#f39c12" : "#e74c3c");
-    textSize(20);
+    let currentStatusText = document.getElementById("statusText").innerText;
 
-    let msg = status.includes("XONG")
-      ? "BƯỚC NÀY XONG - NHẤN SPACE"
-      : "NHẤN SPACE ĐỂ TIẾP TỤC";
+    // Kiểm tra dấu hiệu kết thúc hoàn toàn (giống các bước trước)
+    let isAlgorithmFinished =
+      currentStatusText.includes("Kết quả") ||
+      currentStatusText.includes("Tổng") ||
+      currentStatusText.includes("Đường đi tìm thấy") ||
+      currentStatusText.includes("Không tìm thấy đường đi");
 
-    text(msg, width / 2, 40);
+    if (isAlgorithmFinished) {
+      push();
+      textAlign(CENTER, CENTER);
+      textStyle(BOLD);
+
+      // Vẽ nền mờ cho thông báo kết thúc để dễ nhìn
+      noStroke();
+      fill(0, 0, 0, 150);
+      rectMode(CENTER);
+      rect(width / 2, 45, 450, 60, 10);
+
+      // Thông báo kết thúc chính
+      fill("#f39c12"); // Màu cam
+      textSize(26);
+      text("🏁 THUẬT TOÁN ĐÃ KẾT THÚC", width / 2, 35);
+
+      // Hướng dẫn nhỏ ở dưới
+      textSize(18);
+      fill(255);
+      text("Nhấn SPACE để chạy thuật toán tiếp", width / 2, 60);
+      pop();
+    } else {
+      push();
+      textAlign(CENTER, CENTER);
+      fill(231, 76, 60, 180); // Màu đỏ hơi trong suốt
+      textSize(30);
+      text("⌨ Nhấn SPACE để tiếp tục...", width / 2, 30);
+      pop();
+    }
+  }
+  let drawX,
+    drawY,
+    shouldDraw = false;
+
+  if (traveler.active) {
+    // Trường hợp đang di chuyển
+    drawX = traveler.x;
+    drawY = traveler.y;
+    shouldDraw = true;
+  } else if (traveler.currentId !== null) {
+    // Trường hợp đứng yên tại một đỉnh
+    let currentNode = nodes.find((n) => n.id === traveler.currentId);
+    if (currentNode) {
+      drawX = currentNode.x;
+      drawY = currentNode.y;
+      shouldDraw = true;
+    }
+  }
+
+  if (shouldDraw) {
+    push();
+    textSize(50);
+    textAlign(CENTER, CENTER);
+    // Vẽ emoji dịch lên trên đỉnh một chút để không che số ID
+    text("🏃", drawX, drawY - 25);
+    pop();
   }
 }
 
@@ -184,18 +269,19 @@ async function startDFS() {
   let stackUI = [];
   let dfsOrder = [];
 
-  async function dfs(u) {
+  async function dfs(u, prevNode = null) {
+    if (prevNode !== null) await animateTravel(prevNode, u);
     // 🔥 PUSH (vào stack)
     stackUI.push(u);
     updateStackUI(stackUI);
-    addLog(`Push đỉnh ${u} vào stack`);
+    addLog(`PUSH đỉnh ${u} vào stack`);
 
     visited[u] = true;
     dfsOrder.push(u);
 
     nodes[u - 1].color = "#e74c3c";
     updateStatus(`Đang thăm đỉnh ${u}`);
-    addLog(`Thăm ${u}`);
+    addLog(`Thăm đỉnh ${u}`);
 
     await waitForSpace();
 
@@ -204,8 +290,8 @@ async function startDFS() {
     for (let v of neighbors) {
       if (!visited[v]) {
         addLog(`${u} → ${v}`);
-        await dfs(v);
-
+        await dfs(v, u);
+        await animateTravel(v, u);
         updateStatus(`Quay lui về đỉnh ${u}`);
         nodes[u - 1].color = "#e74c3c";
         await waitForSpace();
@@ -213,12 +299,12 @@ async function startDFS() {
     }
 
     nodes[u - 1].color = "#2ecc71";
-    addLog(`XONG ${u}`);
+    addLog(`Xong đỉnh ${u}`);
 
     // 🔥 POP (ra khỏi stack)
     stackUI.pop();
     updateStackUI(stackUI);
-    addLog(`Pop đỉnh ${u} khỏi stack`);
+    addLog(`POP đỉnh ${u} khỏi stack`);
   }
 
   await dfs(s);
@@ -241,7 +327,8 @@ async function findComponents() {
 
   let visited = new Array(nodes.length + 1).fill(false);
   let count = 0;
-  let colors = ["#1abc9c", "#9b59b6", "#f1c40f", "#e67e22", "#34495e"];
+  let colors = ["#9b59b6"];
+  let lastPos = null;
 
   let startIdx = parseInt(document.getElementById("startNode").value);
   if (isNaN(startIdx) || !nodes[startIdx - 1]) startIdx = 1;
@@ -256,26 +343,31 @@ async function findComponents() {
     if (!visited[i]) {
       count++;
       let stack = [i];
-
+      traveler.currentId = i;
+      updateStackUI([...stack]);
       updateStatus(`TPLT ${count} bắt đầu từ ${i}`);
       addLog(`-- TPLT ${count} --`, true);
 
       while (stack.length > 0) {
         let u = stack.pop();
+        updateStackUI(stack);
+        addLog(`POP đỉnh ${u} khỏi stack`);
 
         if (visited[u]) continue;
-
         visited[u] = true;
         nodes[u - 1].color = colors[(count - 1) % colors.length];
-
+        if (lastPos !== null) await animateTravel(lastPos, u);
+        lastPos = u;
         addLog(`Đỉnh ${u} ∈ TPLT ${count}`);
         await waitForSpace();
 
         // ưu tiên đỉnh nhỏ hơn
         let neighbors = [...nodes[u - 1].adj].sort((a, b) => b - a);
         for (let v of neighbors) {
-          if (!visited[v]) {
+          if (!visited[v] && !stack.includes(v)) {
             stack.push(v);
+            updateStackUI([...stack]);
+            addLog(`PUSH đỉnh ${v} vào stack`);
           }
         }
       }
@@ -287,7 +379,7 @@ async function findComponents() {
 
   updateStatus(`Tổng: ${count} thành phần liên thông`);
   addLog(`Tổng: ${count} thành phần liên thông`, true);
-
+  updateStackUI([]);
   await waitForSpace();
   isRunning = false;
 }
@@ -312,31 +404,40 @@ async function findPath() {
 
   let stack = [s];
   let found = false;
+  let lastPos = s;
+
+  updateStackUI(stack);
 
   while (stack.length > 0) {
     let u = stack.pop();
+    updateStackUI([...stack]);
+    addLog(`POP đỉnh ${u} khỏi stack`);
 
     if (visited[u]) continue;
-
     visited[u] = true;
-    nodes[u - 1].color = "#e74c3c";
+    nodes[u - 1].color = "#2284e6";
+    await animateTravel(lastPos, u);
+    lastPos = u;
 
-    addLog(`Thăm ${u}`);
+    addLog(`Thăm đỉnh ${u}`);
     await waitForSpace();
 
     if (u === e) {
       found = true;
-      addLog(`ĐÃ TỚI ĐỈNH ${e}`, true);
+      addLog(`Đã tới đỉnh ${e}`, true);
       break;
     }
 
     // ưu tiên nhỏ hơn
     let neighbors = [...nodes[u - 1].adj].sort((a, b) => b - a);
-
     for (let v of neighbors) {
       if (!visited[v]) {
         parent[v] = u;
-        stack.push(v);
+        if (!stack.includes(v)) {
+          stack.push(v);
+          updateStackUI([...stack]);
+          addLog(`PUSH đỉnh ${v} vào stack`);
+        }
       }
     }
   }
@@ -354,16 +455,16 @@ async function findPath() {
 
     // tô màu đường đi
     for (let x of path) {
-      nodes[x - 1].color = "#f1c40f";
+      nodes[x - 1].color = "#12f3e8";
     }
 
     addLog(`Đường đi tìm thấy: ${path.join(" ➔ ")}`, true);
     updateStatus(`Đường đi tìm thấy: ${path.join(" → ")}`);
   } else {
-    addLog("KHÔNG CÓ ĐƯỜNG ĐI", true);
-    updateStatus("KHÔNG TÌM THẤY ĐƯỜNG ĐI");
+    addLog(`Không tìm thấy đường đi từ đỉnh ${s} ➔ ${e}`, true);
+    updateStatus(`Không tìm thấy đường đi`);
   }
-
+  updateStackUI([]);
   await waitForSpace();
   isRunning = false;
 }
