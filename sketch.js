@@ -19,21 +19,28 @@ function windowResized() {
 
 function draw() {
   background(255);
-
   // Vẽ cạnh
   strokeWeight(2);
-  for (let e of edges) {
-    let u = nodes[e.u - 1];
-    let v = nodes[e.v - 1];
+  // Trong hàm draw(), tìm đoạn vẽ cạnh:
+  for (let i = 0; i < edges.length; i++) {
+    let e = edges[i];
+    let u = nodes.find((n) => n.id === e.u);
+    let v = nodes.find((n) => n.id === e.v);
 
     if (!u || !v) continue;
 
-    stroke(180);
-    line(u.x, u.y, v.x, v.y);
+    let reverseIdx = edges.findIndex((re) => re.u === e.v && re.v === e.u);
+    let isTwoWay = isDirected && reverseIdx !== -1;
 
-    // 🔥 nếu là đồ thị có hướng → vẽ mũi tên
-    if (isDirected) {
-      drawArrow(u.x, u.y, v.x, v.y);
+    if (isTwoWay) {
+      // Luôn so sánh ID để cạnh 1->2 và 2->1 có dir khác nhau
+      // Nhưng quan trọng là hàm drawCurveEdge bên dưới phải xử lý dir này
+      let dir = e.u < e.v ? 1 : -1;
+      drawCurveEdge(u, v, dir);
+    } else {
+      stroke(180);
+      line(u.x, u.y, v.x, v.y);
+      if (isDirected) drawArrow(u.x, u.y, v.x, v.y);
     }
   }
 
@@ -73,10 +80,10 @@ function draw() {
 function drawArrow(x1, y1, x2, y2) {
   let angle = atan2(y2 - y1, x2 - x1);
 
-  let arrowSize = 12; // 🔥 tăng size
+  let arrowSize = 10;
 
-  // 🔥 lùi mũi tên ra khỏi node (tránh bị che)
-  let offset = 20; // bán kính node ~20
+  // lùi vào khỏi node
+  let offset = 20;
   let x = x2 - offset * cos(angle);
   let y = y2 - offset * sin(angle);
 
@@ -90,6 +97,47 @@ function drawArrow(x1, y1, x2, y2) {
   triangle(0, 0, -arrowSize, arrowSize / 2, -arrowSize, -arrowSize / 2);
 
   pop();
+}
+
+function drawCurveEdge(u, v, dir) {
+  let dx = v.x - u.x;
+  let dy = v.y - u.y;
+  let len = sqrt(dx * dx + dy * dy);
+  if (len === 0) return;
+
+  // TÍNH TOÁN CỐ ĐỊNH:
+  // Dù đang vẽ u->v hay v->u, ta luôn lấy vector pháp tuyến của chiều "ID nhỏ -> ID lớn"
+  // Điều này đảm bảo hệ trục tọa độ không bị lật 180 độ.
+
+  let nx, ny;
+  if (u.id < v.id) {
+    nx = -dy / len;
+    ny = dx / len;
+  } else {
+    // Nếu vẽ từ ID lớn về ID nhỏ, ta lấy đối của vector pháp tuyến ngược lại
+    // để nó vẫn cùng hướng với thằng ID nhỏ -> ID lớn
+    nx = dy / len;
+    ny = -dx / len;
+  }
+
+  let curveOffset = 60; // Độ cong
+
+  // Bây giờ dir = 1 và dir = -1 sẽ thực sự đẩy cx, cy về 2 phía khác nhau
+  let cx = (u.x + v.x) / 2 + nx * curveOffset * dir;
+  let cy = (u.y + v.y) / 2 + ny * curveOffset * dir;
+
+  stroke(180);
+  noFill();
+  beginShape();
+  vertex(u.x, u.y);
+  quadraticVertex(cx, cy, v.x, v.y);
+  endShape();
+
+  drawArrow(cx, cy, v.x, v.y);
+}
+
+function hasReverseEdge(u, v) {
+  return edges.some((e) => e.u === v && e.v === u);
 }
 
 // --- HỆ THỐNG ĐIỀU KHIỂN ---
@@ -130,7 +178,7 @@ async function startDFS() {
 
   isRunning = true;
   resetColors();
-  addLog(`--- BẮT ĐẦU DFS TỪ ĐỈNH ${s} ---`, true);
+  addLog(`-- BẮT ĐẦU DFS TỪ ĐỈNH ${s} --`, true);
 
   let visited = new Array(nodes.length + 1).fill(false);
   let stackUI = [];
@@ -189,7 +237,7 @@ async function findComponents() {
 
   isRunning = true;
   resetColors();
-  addLog("--- TÌM THÀNH PHẦN LIÊN THÔNG ---", true);
+  addLog("-- TÌM THÀNH PHẦN LIÊN THÔNG --", true);
 
   let visited = new Array(nodes.length + 1).fill(false);
   let count = 0;
@@ -210,7 +258,7 @@ async function findComponents() {
       let stack = [i];
 
       updateStatus(`TPLT ${count} bắt đầu từ ${i}`);
-      addLog(`--- TPLT ${count} ---`, true);
+      addLog(`-- TPLT ${count} --`, true);
 
       while (stack.length > 0) {
         let u = stack.pop();
@@ -256,7 +304,7 @@ async function findPath() {
 
   isRunning = true;
   resetColors();
-  addLog(`--- TÌM ĐƯỜNG ĐI TỪ ĐỈNH ${s} ➔ ${e} ---`, true);
+  addLog(`-- TÌM ĐƯỜNG ĐI TỪ ĐỈNH ${s} ➔ ${e} --`, true);
   updateStatus(`Đang tìm đường đi từ đỉnh ${s} → ${e}`);
 
   let visited = new Array(nodes.length + 1).fill(false);
@@ -326,7 +374,7 @@ function mousePressed() {
 
   // CHỨC NĂNG XÓA (CLICK CHUỘT PHẢI)
   if (mouseButton === RIGHT) {
-    // 1. Kiểm tra xóa Đỉnh trước
+    // 1. Kiểm tra xóa Đỉnh
     let nodeIdx = nodes.findIndex((n) => dist(mouseX, mouseY, n.x, n.y) < 25);
     if (nodeIdx !== -1) {
       let id = nodes[nodeIdx].id;
@@ -340,23 +388,51 @@ function mousePressed() {
       return false;
     }
 
-    // 2. Nếu không trúng đỉnh, quét danh sách Cạnh
+    // 2. Kiểm tra xóa Cạnh (Hỗ trợ cạnh cong 2 chiều)
     for (let i = edges.length - 1; i >= 0; i--) {
       let e = edges[i];
-      let nU = nodes.find((n) => n.id === e.u);
-      let nV = nodes.find((n) => n.id === e.v);
+      let u = nodes.find((n) => n.id === e.u);
+      let v = nodes.find((n) => n.id === e.v);
 
-      if (nU && nV) {
-        // GỌI HÀM distToSegment VỪA THÊM Ở TRÊN
-        let d = distToSegment(mouseX, mouseY, nU.x, nU.y, nV.x, nV.y);
-        if (d < 15) {
-          if (confirm(`Bạn có chắc muốn xóa CẠNH ${e.u} - ${e.v}?`)) {
-            edges.splice(i, 1);
-            rebuildGraph();
-            updateStatus(`Đã xóa cạnh ${e.u} - ${e.v}`);
-            addLog(`Đã xóa cạnh ${e.u} - ${e.v}`, true);
+      if (u && v) {
+        let reverseIdx = edges.findIndex((re) => re.u === e.v && re.v === e.u);
+        let isTwoWay = isDirected && reverseIdx !== -1;
+
+        if (isTwoWay) {
+          let dir = e.u < e.v ? 1 : -1;
+          let dx = v.x - u.x;
+          let dy = v.y - u.y;
+          let len = sqrt(dx * dx + dy * dy);
+
+          // Logic vector pháp tuyến cố định đã sửa ở bước trước
+          let nx = u.id < v.id ? -dy / len : dy / len;
+          let ny = u.id < v.id ? dx / len : -dx / len;
+
+          let curveOffset = 60;
+          let cx = (u.x + v.x) / 2 + nx * curveOffset * dir;
+          let cy = (u.y + v.y) / 2 + ny * curveOffset * dir;
+
+          // KIỂM TRA VA CHẠM TOÀN BỘ ĐƯỜNG CONG
+          let d = distToBezier(mouseX, mouseY, u.x, u.y, cx, cy, v.x, v.y);
+
+          if (d < 15) {
+            // Click vào bất cứ đâu trên sợi dây trong khoảng 15px
+            if (confirm(`Xóa cạnh ${e.u} -> ${e.v}?`)) {
+              edges.splice(i, 1);
+              rebuildGraph();
+              return false;
+            }
           }
-          return false;
+        } else {
+          // Cạnh thẳng bình thường
+          d = distToSegment(mouseX, mouseY, u.x, u.y, v.x, v.y);
+          if (d < 15) {
+            if (confirm(`Bạn có chắc muốn xóa cạnh giữa ${e.u} và ${e.v}?`)) {
+              edges.splice(i, 1);
+              rebuildGraph();
+              return false;
+            }
+          }
         }
       }
     }
@@ -386,20 +462,40 @@ function mousePressed() {
           );
         } else {
           if (selectedNode.id !== clicked.id) {
-            let exists = edges.find(
-              (e) =>
-                (e.u === selectedNode.id && e.v === clicked.id) ||
-                (e.v === selectedNode.id && e.u === clicked.id),
-            );
-            if (!exists) {
-              edges.push({ u: selectedNode.id, v: clicked.id });
-              // Tự động rebuild để cập nhật adj list cho chắc chắn
-              rebuildGraph();
-              updateStatus(
-                `Đã nối cạnh giữa đỉnh ${selectedNode.id} và ${clicked.id}`,
+            let exists;
+            if (isDirected) {
+              // 🔥 chỉ check đúng chiều
+              exists = edges.find(
+                (e) => e.u === selectedNode.id && e.v === clicked.id,
               );
             } else {
-              updateStatus(`Cạnh này đã tồn tại rồi!`);
+              // 🔥 vô hướng → check cả 2 chiều
+              exists = edges.find(
+                (e) =>
+                  (e.u === selectedNode.id && e.v === clicked.id) ||
+                  (e.v === selectedNode.id && e.u === clicked.id),
+              );
+            }
+            if (!exists) {
+              edges.push({ u: selectedNode.id, v: clicked.id });
+              rebuildGraph();
+              if (isDirected) {
+                updateStatus(`Đã nối cạnh ${selectedNode.id} → ${clicked.id}`);
+              } else {
+                updateStatus(
+                  `Đã nối cạnh giữa đỉnh ${selectedNode.id} và ${clicked.id}`,
+                );
+              }
+            } else {
+              if (isDirected) {
+                updateStatus(
+                  `Đã tồn tại cạnh ${selectedNode.id} → ${clicked.id}`,
+                );
+              } else {
+                updateStatus(
+                  `Đã tồn tại cạnh giữa đỉnh ${selectedNode.id} và ${clicked.id}`,
+                );
+              }
             }
           }
           selectedNode.color = "#ffffff";
@@ -423,6 +519,29 @@ function distToSegment(px, py, x1, y1, x2, y2) {
   t_fixed = Math.max(0, Math.min(1, t_fixed));
 
   return dist(px, py, x1 + t_fixed * dx, y1 + t_fixed * dy);
+}
+
+function distToBezier(px, py, x1, y1, cx, cy, x2, y2) {
+  let minDist = Infinity;
+  let steps = 10; // Chia đường cong làm 10 đoạn để kiểm tra
+
+  let prevX = x1;
+  let prevY = y1;
+
+  for (let i = 1; i <= steps; i++) {
+    let t = i / steps;
+    // Công thức Bezier bậc 2
+    let x = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * cx + t * t * x2;
+    let y = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * cy + t * t * y2;
+
+    // Tính khoảng cách từ chuột đến đoạn thẳng nhỏ (prev -> hiện tại)
+    let d = distToSegment(px, py, prevX, prevY, x, y);
+    if (d < minDist) minDist = d;
+
+    prevX = x;
+    prevY = y;
+  }
+  return minDist;
 }
 
 function updateStackUI(s) {
@@ -457,13 +576,6 @@ function changeGraphType() {
 
 function resetGraph() {
   if (isRunning) return;
-  nodes = [];
-  edges = [];
-  isRunning = false;
-  isPaused = false;
-  updateStatus("Sẵn sàng.");
-  updateStackUI([]);
-  document.getElementById("log-box").innerHTML = "";
   if (confirm("Bạn có chắc chắn muốn xóa toàn bộ đồ thị không?")) {
     nodes = [];
     edges = [];
